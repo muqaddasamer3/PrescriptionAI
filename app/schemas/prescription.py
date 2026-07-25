@@ -1,20 +1,17 @@
-from datetime import datetime
-from uuid import UUID
-
 from pydantic import BaseModel
+from uuid import UUID
+from datetime import datetime
 
-
-class PrescriptionCreate(BaseModel):
-    user_id: UUID
+class PrescriptionBase(BaseModel):
     image_path: str
 
+class PrescriptionCreate(PrescriptionBase):
+    user_id: UUID
 
-class PrescriptionResponse(BaseModel):
+class PrescriptionResponse(PrescriptionBase):
     id: UUID
     user_id: UUID
-    image_path: str
     uploaded_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True

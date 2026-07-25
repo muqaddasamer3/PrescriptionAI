@@ -1,72 +1,37 @@
-import uuid
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from typing import TYPE_CHECKING
+from sqlalchemy import Column, String, DateTime, ForeignKey, Index, func, text
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 from app.database.base import Base
+import uuid
+from uuid import UUID
 
+if TYPE_CHECKING:
+    from .user import User
+    from .ocr_result import OCRResult
+    from .ai_result import AIResult
+    from .chat_history import ChatHistory
 
 class Prescription(Base):
     __tablename__ = "prescriptions"
 
-    # Primary Key
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    image_path: Mapped[str] = mapped_column(String, nullable=False)
+    uploaded_at: Mapped[DateTime] = mapped_column(DateTime, server_default=text('NOW()'), nullable=False)
 
-    # Foreign Key to Users table
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False
-    )
-
-    # Path of uploaded prescription image
-    image_path: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
-
-    # Upload timestamp
-    uploaded_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
-
-    # -------------------------
     # Relationships
-    # -------------------------
-
-    # Many Prescriptions -> One User
-    user = relationship(
-        "User",
-        back_populates="prescriptions"
+    user: Mapped["User"] = relationship("User", back_populates="prescriptions")
+    ocr_result: Mapped["OCRResult"] = relationship(
+        "OCRResult", back_populates="prescription", uselist=False, cascade="all, delete-orphan"
+    )
+    ai_result: Mapped["AIResult"] = relationship(
+        "AIResult", back_populates="prescription", uselist=False, cascade="all, delete-orphan"
+    )
+    chat_history: Mapped[list["ChatHistory"]] = relationship(
+        "ChatHistory", back_populates="prescription", cascade="all, delete-orphan"
     )
 
-    # One Prescription -> One OCR Result
-    ocr_result = relationship(
-        "OCRResult",
-        back_populates="prescription",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
-    # One Prescription -> One AI Result
-    ai_result = relationship(
-        "AIResult",
-        back_populates="prescription",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
-    # One Prescription -> Many Chat Messages
-    chat_history = relationship(
-        "ChatHistory",
-        back_populates="prescription",
-        cascade="all, delete-orphan"
+    __table_args__ = (
+        Index("idx_prescription_user_id", "user_id"),
+        Index("idx_prescription_uploaded_at", "uploaded_at"),
     )

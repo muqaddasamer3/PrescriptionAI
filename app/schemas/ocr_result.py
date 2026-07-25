@@ -1,19 +1,16 @@
-from uuid import UUID
 from pydantic import BaseModel
+from uuid import UUID
 
-
-class OCRResultCreate(BaseModel):
-    prescription_id: UUID
+class OCRResultBase(BaseModel):
     extracted_text: str
     confidence: float
 
+class OCRResultCreate(OCRResultBase):
+    prescription_id: UUID
 
-class OCRResultResponse(BaseModel):
+class OCRResultResponse(OCRResultBase):
     id: UUID
     prescription_id: UUID
-    extracted_text: str
-    confidence: float
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True

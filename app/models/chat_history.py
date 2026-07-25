@@ -1,37 +1,26 @@
-import uuid
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from typing import TYPE_CHECKING
+from sqlalchemy import Column, String, DateTime, ForeignKey, Index, func
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 from app.database.base import Base
+import uuid
+from uuid import UUID
 
+if TYPE_CHECKING:
+    from .prescription import Prescription
 
 class ChatHistory(Base):
     __tablename__ = "chat_history"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    prescription_id: Mapped[UUID] = mapped_column(ForeignKey("prescriptions.id", ondelete="CASCADE"), nullable=False)
+    question: Mapped[str] = mapped_column(String, nullable=False)
+    answer: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    prescription_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("prescriptions.id")
-    )
+    # Relationships
+    prescription: Mapped["Prescription"] = relationship("Prescription", back_populates="chat_history")
 
-    question: Mapped[str] = mapped_column(Text)
-
-    answer: Mapped[str] = mapped_column(Text)
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow
-    )
-
-    prescription = relationship(
-        "Prescription",
-        back_populates="chat_history"
+    __table_args__ = (
+        Index("idx_chat_prescription_id", "prescription_id"),
+        Index("idx_chat_created_at", "created_at"),
     )

@@ -1,22 +1,18 @@
-from datetime import datetime
-from uuid import UUID
-
 from pydantic import BaseModel
+from uuid import UUID
+from datetime import datetime
 
-
-class ChatHistoryCreate(BaseModel):
-    prescription_id: UUID
+class ChatHistoryBase(BaseModel):
     question: str
     answer: str
 
+class ChatHistoryCreate(ChatHistoryBase):
+    prescription_id: UUID
 
-class ChatHistoryResponse(BaseModel):
+class ChatHistoryResponse(ChatHistoryBase):
     id: UUID
     prescription_id: UUID
-    question: str
-    answer: str
     created_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True

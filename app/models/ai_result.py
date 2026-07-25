@@ -1,44 +1,28 @@
-import uuid
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from typing import TYPE_CHECKING
+from sqlalchemy import Column, String, DateTime, ForeignKey, Index, func, JSON
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 from app.database.base import Base
+import uuid
+from uuid import UUID
 
+if TYPE_CHECKING:
+    from .prescription import Prescription
 
 class AIResult(Base):
     __tablename__ = "ai_results"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    prescription_id: Mapped[UUID] = mapped_column(ForeignKey("prescriptions.id", ondelete="CASCADE"), nullable=False, unique=True)
+    medicine_names: Mapped[list] = mapped_column(JSON, nullable=True)
+    abbreviations: Mapped[dict] = mapped_column(JSON, nullable=True)
+    roman_urdu: Mapped[str] = mapped_column(String, nullable=True)
+    medication_schedule: Mapped[dict] = mapped_column(JSON, nullable=True)
+    unreadable_sections: Mapped[list] = mapped_column(JSON, nullable=True)
+    generated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    prescription_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("prescriptions.id"),
-        unique=True
-    )
+    # Relationships
+    prescription: Mapped["Prescription"] = relationship("Prescription", back_populates="ai_result")
 
-    medicine_names: Mapped[list] = mapped_column(JSON)
-
-    abbreviations: Mapped[dict] = mapped_column(JSON)
-
-    roman_urdu: Mapped[str] = mapped_column(JSON)
-
-    medication_schedule: Mapped[dict] = mapped_column(JSON)
-
-    unreadable_sections: Mapped[list] = mapped_column(JSON)
-
-    generated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow
-    )
-
-    prescription = relationship(
-        "Prescription",
-        back_populates="ai_result"
+    __table_args__ = (
+        Index("idx_ai_prescription_id", "prescription_id"),
     )
